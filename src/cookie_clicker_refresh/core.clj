@@ -9,10 +9,64 @@
     (cv/cvt-color image gray cv/COLOR_BGR2GRAY)
     gray))
 
+(defn img
+  "Convenience function to ensure that image paths get converted to OpenCV images."
+  [v]
+  (if (string? v)
+    (cv/imread v)
+    v))
+
 (defn match-template [source template]
-  (let [result (cv/new-mat)]
+  (let [source (img source)
+        template (img template)
+        result (cv/new-mat)]
     (cv/match-template source template result cv/TM_CCOEFF_NORMED)
     result))
+
+(defn not-close [points {:keys [x y]}]
+  (not
+   (or
+    (get points {:x (dec x) :y (- y 2)}) ;; TODO there's probably a better way to do this
+    (get points {:x (dec x) :y (dec y)})
+    (get points {:x (dec x) :y y})
+    (get points {:x (dec x) :y (inc y)})
+    (get points {:x (dec x) :y (+ y 2)})
+    (get points {:x x :y (- y 2)})
+    (get points {:x x :y (dec y)})
+    (get points {:x x :y y})
+    (get points {:x x :y (dec y)})
+    (get points {:x x :y (+ y 2)})
+    (get points {:x (inc x) :y (- y 2)})
+    (get points {:x (inc x) :y (dec y)})
+    (get points {:x (inc x) :y y})
+    (get points {:x (inc x) :y (inc y)})
+    (get points {:x (inc x) :y (+ y 2)}))))
+
+(defn count-template
+  ;; E.g. (count-template "several_wheats.png" "wheat.png" 0.7)
+  [source template threshold]
+  (let [source (img source)
+        template (img template)
+        result (cv/new-mat)
+        locations-atom (atom {})]
+    (cv/match-template source template result cv/TM_CCOEFF_NORMED)
+    (doseq [y (range (.rows result))
+            x (range (.cols result))
+            :let [score (first (.get result y x))]
+            :when (>= score threshold)
+            ]
+      (swap! locations-atom (fn [locations]
+                              (if (not-close locations {:x x :y y})
+                                (assoc locations {:x x :y y} true)
+                                locations)))
+      ;; (cv/rectangle source
+      ;;               (cv/new-point x y)
+      ;;               (cv/new-point (+ x (.width template)) (+ y (.height template)))
+      ;;               (cv/new-scalar 0 0 255)
+      ;;               1)
+      )
+    ;; (cv/imwrite source "found.png")
+    (count @locations-atom)))
 
 (defn find-best-match [result]
   (let [min-max-loc (cv/min-max-loc result)]
