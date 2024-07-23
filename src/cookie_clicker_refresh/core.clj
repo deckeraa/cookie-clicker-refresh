@@ -66,6 +66,7 @@
       ;;               1)
       )
     ;; (cv/imwrite source "found.png")
+    (println "locations-atom: " @locations-atom)
     (count @locations-atom)))
 
 (defn find-best-match [result]
@@ -115,8 +116,25 @@
 
 (defn refresh-till [plant-path]
   (Thread/sleep 2000)
-  (while (not (template-inside? (capture-screen) plant-path 0.7))
+  (while (not (template-inside? (capture-screen) plant-path 0.65))
     (press-f5)
     (Thread/sleep 2000)))
+
+(defn refresh-till-bakeberry []
+  (refresh-till "Bakeberry_bud.png" 0.792))
+
+(defn refresh-till2 [plant-path n]
+  (Thread/sleep 2000)
+  (while (< (count-template (capture-screen) plant-path 0.7) n)
+    (press-f5)
+    (Thread/sleep 2000)))
+
+(defn refresh-till3 [plant-path]
+  (Thread/sleep 1000)
+  (let [initial-count (count-template (capture-screen) plant-path 0.7)]
+    (Thread/sleep 1000)
+    (while (<= (count-template (capture-screen) plant-path 0.7) initial-count)
+      (press-f5)
+      (Thread/sleep 2000))))
 
 ;; (refresh-till "Elderwort_bud.png")
